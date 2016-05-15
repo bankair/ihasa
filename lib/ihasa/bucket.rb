@@ -1,6 +1,10 @@
 module Ihasa
+  NOK = 0
+  OK = 1
+  # Bucket class. That bucket fills up to burst, by rate per
+  # second. Each guard or guard! call decrement it from 1.
   class Bucket
-    attr_reader :redis # FIXME: remove after debug
+    attr_reader :redis
     def initialize(rate, burst, prefix, redis)
       @prefix = prefix
       @keys = {}
@@ -14,21 +18,9 @@ module Ihasa
       redis_init
     end
 
-    def redis_init
-      redis_eval <<-LUA
-        #{INTRO_STATEMENT}
-        #{redis_set rate, @rate}
-        #{redis_set burst, @burst}
-        #{redis_set allowance, @burst}
-        #{redis_set last, 'now'}
-      LUA
-    end
-
     def guard
       result = redis_eval(statement) == OK
-      if result && block_given?
-        yield
-      end
+      return yield if result && block_given?
       result
     end
 
@@ -39,13 +31,21 @@ module Ihasa
       raise EmptyBucket, "Bucket #{@prefix} throttle limit" unless result
       result
     end
-    
-    # FIXME: uncomment
-    # protected
+
+    protected
+
+    def redis_init
+      redis_eval <<-LUA
+        #{INTRO_STATEMENT}
+        #{redis_set rate, @rate}
+        #{redis_set burst, @burst}
+        #{redis_set allowance, @burst}
+        #{redis_set last, 'now'}
+      LUA
+    end
 
     require 'forwardable'
     extend Forwardable
-
 
     def_delegator :@keys, :keys
     def_delegator :@keys, :values, :redis_keys
@@ -56,88 +56,46 @@ module Ihasa
 
     # Please note that the replicate_commands is mandatory when using a
     # non deterministic command before writing shit to the redis instance.
-    INTRO_STATEMENT = <<-LUA
+    INTRO_STATEMENT = <<-LUA.freeze
       redis.replicate_commands()
       local now = redis.call('TIME')
       now = now[1] + now[2] * 10 ^ -6
     LUA
 
-    if DEBUG
-      def redis_eval(statement)
-        # warn "KEYS: #{redis_keys.inspect}"
-        # warn "SCRIPT:"
-        # statement.split("\n").each_with_index { |x, i| warn "#{i + 1} #{x}" }
-        result = redis.eval(statement, redis_keys)
-        if result
-          warn "RESULT: #{result.first}"
-          warn "ENV: #{result[1..-1].inspect}"
-        end
-        result
-      end
-    else
-      def redis_eval(statement)
-        redis.eval(statement, redis_keys)
-      end
+    def redis_eval(statement)
+      redis.eval(statement, redis_keys)
     end
 
-    NOK = 0
-    OK = 1
-
-    if DEBUG
-      def ok
-        encapsulate OK
-      end
-      def nok
-        encapsulate NOK
-      end
-    else
-      def ok
-        OK
-      end
-      def nok
-        NOK
-      end
-    end
-
-    def encapsulate(value)
-      results = %w(allowance elapsed last now).map do |e|
-        "'#{e}:' .. tostring(#{e})"
-      end
-      results.unshift value
-      "{#{results.join(';')}}"
-    end
-
-    def elapsed_statement
-      "local elapsed = now - last"
-    end
+    ELAPSED_STATEMENT = 'local elapsed = now - last'.freeze
 
     def local_statements
-      results = %i(rate burst last allowance)
-      results.map! { |key| "local #{key} = tonumber(#{redis_get(redis_key key)})" }
-      results << elapsed_statement
+      results = %i(rate burst last allowance).map do |key|
+        "local #{key} = tonumber(#{redis_get(redis_key(key))})"
+      end
+      results << ELAPSED_STATEMENT
       results.join "\n"
     end
 
-    def statement
-      return <<-LUA
-      #{INTRO_STATEMENT}
-      local trace = ''
-      #{local_statements}
-      trace = trace .. 'oldallow:' .. tostring(allowance) .. ';'
-      trace = trace .. 'regen:' .. tostring(elapsed / rate) .. ';'
+    ALLOWANCE_UPDATE_STATEMENT = <<-LUA.freeze
       allowance = allowance + (elapsed * rate)
       if allowance > burst then
         allowance = burst
       end
-      #{redis_set(last, 'now')}
-      if allowance < 1.0 then
+    LUA
+
+    def statement
+      @statement ||= <<-LUA
+        #{INTRO_STATEMENT}
+        #{local_statements}
+        #{ALLOWANCE_UPDATE_STATEMENT}
+        local result = #{NOK}
+        if allowance >= 1.0
+          #{redis_set(last, 'now')}
+          allowance = allowance - 1.0
+          result = #{OK}
+        end
         #{redis_set(allowance, 'allowance')}
-        return #{nok}
-      else
-        allowance = allowance - 1.0
-        #{redis_set(allowance, 'allowance')}
-        return #{ok}
-      end
+        return result
       LUA
     end
 
