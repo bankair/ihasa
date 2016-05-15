@@ -89,7 +89,7 @@ module Ihasa
         #{local_statements}
         #{ALLOWANCE_UPDATE_STATEMENT}
         local result = #{NOK}
-        if allowance >= 1.0
+        if allowance >= 1.0 then
           #{redis_set(last, 'now')}
           allowance = allowance - 1.0
           result = #{OK}
