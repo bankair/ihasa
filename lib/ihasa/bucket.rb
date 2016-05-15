@@ -1,6 +1,4 @@
-require 'redis'
-class Ihasa
-  DEBUG = true
+module Ihasa
   class Bucket
     attr_reader :redis # FIXME: remove after debug
     def initialize(rate, burst, prefix, redis)
@@ -55,8 +53,6 @@ class Ihasa
     def index(key)
       keys.index(key) + 1
     end
-
-
 
     # Please note that the replicate_commands is mandatory when using a
     # non deterministic command before writing shit to the redis instance.
@@ -165,21 +161,5 @@ class Ihasa
       super unless @keys.key?(sym)
       redis_key sym
     end
-
-  end
-
-  DEFAULT_REDIS_PREFIX = 'IHAB'
-
-  class << self
-    def default_redis
-      @redis ||= Redis.new url: 'redis://192.168.99.100:32768' # FIXME: update after debug
-    end
-
-    def bucket(rate: 5, burst: 10, prefix: DEFAULT_REDIS_PREFIX, redis: default_redis)
-      @implementation = Bucket.new(rate, burst, prefix, redis)
-    end
   end
 end
-
-$b = Ihasa.bucket
-loop { puts $b.guard; sleep 1}
