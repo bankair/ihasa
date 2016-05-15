@@ -2,7 +2,7 @@ module Ihasa
   NOK = 0
   OK = 1
   # Bucket class. That bucket fills up to burst, by rate per
-  # second. Each guard or guard! call decrement it from 1.
+  # second. Each accept? or accept?! call decrement it from 1.
   class Bucket
     attr_reader :redis
     def initialize(rate, burst, prefix, redis)
@@ -18,7 +18,7 @@ module Ihasa
       redis_init
     end
 
-    def guard
+    def accept?
       result = redis_eval(statement) == OK
       return yield if result && block_given?
       result
@@ -26,8 +26,8 @@ module Ihasa
 
     class EmptyBucket < RuntimeError; end
 
-    def guard!
-      result = (block_given? ? guard(&Proc.new) : guard)
+    def accept!
+      result = (block_given? ? accept?(&Proc.new) : accept?)
       raise EmptyBucket, "Bucket #{@prefix} throttle limit" unless result
       result
     end
