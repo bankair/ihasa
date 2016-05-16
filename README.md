@@ -5,10 +5,11 @@ Ihasa is a ruby implementation of the [token bucket algorithm](https://en.wikipe
 It  provides a way to share your rate/burst limit across multiple servers, as well as a simple interface.
 
 *Why use Ihasa?*
+
 1. It's easy to use ([go check the usage section](#usage)
 2. It supports rate AND burst
 3. It does not reset all rate limit consumption each new second/minute/hour
-4. It has [namespaces](namespaces)
+4. It has [namespaces](#namespaces)
 
 
 - [Installation](#installation)
@@ -111,6 +112,7 @@ class Controller < ActionController::Base
 
 By default, all new buckets use the redis instance hosted at localhost:6379. There is
 however two way to configure the used redis instance:
+
 1. Override the `REDIS_URL` env variable. All new buckets will use that instance
 2. Override the redis url on a bucket creation basis like follow:
 
