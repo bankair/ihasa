@@ -28,7 +28,7 @@ $ gem install ihasa
 You can as well include it in you `Gemfile`:
 
 ```
-gem 'rubocop', require: false
+gem 'ihasa', require: false
 ```
 
 ## Usage
