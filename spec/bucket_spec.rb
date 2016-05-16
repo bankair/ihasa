@@ -27,7 +27,7 @@ describe Ihasa::Bucket do
       end
       it 'no longer reponsd true once the burst limit is crossed' do
         10.times { expect(bucket.accept?).to eq true }
-        expect(bucket.accept?).to eq false
+        100.times { expect(bucket.accept?).to eq false }
       end
       it 'regenerate its allowance over time' do
         skip "Slow integration test"

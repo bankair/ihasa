@@ -90,10 +90,10 @@ module Ihasa
         #{ALLOWANCE_UPDATE_STATEMENT}
         local result = #{NOK}
         if allowance >= 1.0 then
-          #{redis_set(last, 'now')}
           allowance = allowance - 1.0
           result = #{OK}
         end
+        #{redis_set(last, 'now')}
         #{redis_set(allowance, 'allowance')}
         return result
       LUA
