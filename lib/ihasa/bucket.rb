@@ -15,7 +15,6 @@ module Ihasa
       @redis = redis
       @rate = Float rate
       @burst = Float burst
-      initialize_redis_namespace
     end
 
     def accept?
@@ -32,8 +31,6 @@ module Ihasa
       result
     end
 
-    protected
-
     def initialize_redis_namespace
       redis_eval <<-LUA
         #{INTRO_STATEMENT}
@@ -43,6 +40,8 @@ module Ihasa
         #{redis_set last, 'now'}
       LUA
     end
+
+    protected
 
     require 'forwardable'
     extend Forwardable
