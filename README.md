@@ -69,8 +69,60 @@ Please note that there is also a `Ihasa::Bucket#accept?!` method that raise a
 
 ### Advanced
 
-Here is some details on the available configuration options of the Ihasa::Bucket
-class.
+In this section, you will find some details on the available configuration options of the Ihasa::Bucket
+class, as well a some advices to run lots of Bucket simultaneously.
+
+#### Using a lots of different buckets
+
+If you want to enforce rate limits by customer, you have to create as many buckets as customers you have.
+Which can be a lot if you are successful ;).
+
+To have a lots of buckets in parallel and to avoid resetting your redis namespaces too often, I suggest you
+no longer use the `Ihasa.bucket` method. Instead, you should back-up your buckets with activerecord models
+(for example) and initialize them in a callback runned after the models creation.
+
+Example:
+
+```ruby
+  class Bucket < ActiveRecord::Base
+    attr_accessible :rate, :burst, :prefix
+
+    def implementation
+      @implementation ||= Ihasa::Bucket.new(rate, burst, prefix, $redis)
+    end
+
+    # The Ihasa::Bucket#initialize_redis_namespace set the relevant
+    # keys in your redis instance to have a working bucket. Do it
+    # only when you create or update your bucket's configuration.
+    after_save { implementation.initialize_redis_namespace }
+
+    delegate :accept?, to: :implementation
+  end
+
+  # Usage:
+
+  Bucket.create(rate: 10, burst: 50, prefix: 'CustomerIdentifier42')
+
+  # ...
+
+  # Later, in a controller:
+  DEFAULT_BUCKET = Ihasa.bucket(rate: 5, burst: 20, prefix: 'default')
+
+  def process_request
+    bucket = Bucket.find_by_prefix(params[:customer_identifier])
+    unless bucket
+      Rails.logger.warn("No bucket for customer #{params[:customer_identifier]}.")
+      Rails.logger.warn('Using default config.')
+      bucket = DEFAULT_BUCKET
+    end
+    unless bucket.accept?
+      Rails.logger.error("Customer #{params[:customer_identifier]} violated its rate limit.")
+      return head 403
+    end
+    # other actions not executed if rate limit violated
+    # ...
+  end
+```
 
 #### Configuring rate and burst limit
 
