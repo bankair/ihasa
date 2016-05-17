@@ -1,6 +1,5 @@
 require 'spec_helper'
 require 'ihasa'
-require 'timecop'
 
 describe Ihasa::Bucket do
   let(:redis) { Ihasa.default_redis }
