@@ -1,3 +1,4 @@
+require 'digest/sha1'
 module Ihasa
   NOK = 0
   OK = 1
@@ -15,12 +16,20 @@ module Ihasa
       @redis = redis
       @rate = Float rate
       @burst = Float burst
+      self.digest = Digest::SHA1.hexdigest statement
     end
 
+    SETUP_ADVICE = 'Ensure that the method '\
+    'Ihasa::Bucket#initialize_redis_namespace was called.'.freeze
+    SETUP_ERROR = ('Redis raised an error: %{msg}. ' + SETUP_ADVICE).freeze
+    class RedisNamespaceSetupError < RuntimeError; end
+
     def accept?
-      result = redis_eval(statement) == OK
+      result = redis.evalsha(digest, redis_keys) == OK
       return yield if result && block_given?
       result
+    rescue Redis::CommandError => e
+      raise RedisNamespaceSetupError, SETUP_ERROR % { msg: e.message }
     end
 
     class EmptyBucket < RuntimeError; end
@@ -32,6 +41,7 @@ module Ihasa
     end
 
     def initialize_redis_namespace
+      load_statement
       redis_eval <<-LUA
         #{INTRO_STATEMENT}
         #{redis_set rate, @rate}
@@ -42,6 +52,15 @@ module Ihasa
     end
 
     protected
+
+    attr_accessor :digest
+
+    def load_statement
+      sha = redis.script(:load, statement)
+      if sha != digest
+        raise 'SHA1 inconsistency: expected #{digest}, got #{sha}'
+      end
+    end
 
     require 'forwardable'
     extend Forwardable
