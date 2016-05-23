@@ -25,7 +25,7 @@ Installation is standard:
 $ gem install ihasa
 ```
 
-You can as well include it in you `Gemfile`:
+You can include it in your `Gemfile` as well:
 
 ```
 gem 'ihasa', require: false
@@ -39,7 +39,7 @@ Be sure to require Ihasa:
 require 'ihasa'
 ```
 
-To create a new bucket accepting 5 requests per second with an allowed burst of 10
+To create a new bucket that accepts 5 requests per second with an allowed burst of 10
 requests per second (the default values), use the `Ihasa.bucket` method:
 
 ```ruby
@@ -50,8 +50,8 @@ Please note that the default redis connection is built from the `REDIS_URL`
 environment variable, or use the default constructor of redis-rb
 (`redis://localhost:6379`).
 
-Now, you can use your token bucket to check if an incoming request can be handled
-or must be turned down:
+Now, you can use your token bucket to check if an incoming request can be handled,
+or must be declined:
 
 ```ruby
 def process(request)
@@ -64,22 +64,22 @@ def process(request)
 end
 ```
 
-Please note that there is also a `Ihasa::Bucket#accept?!` method that raise a
-`Ihasa::Bucket::EmptyBucket` errors if the limit is violated.
+Please note that there is also a `Ihasa::Bucket#accept?!` method that raises an
+`Ihasa::Bucket::EmptyBucket` error if the limit has already been reached.
 
 ### Advanced
 
 In this section, you will find some details on the available configuration options of the Ihasa::Bucket
-class, as well a some advices to run lots of Bucket simultaneously.
+class, as well as advice on how to run many Buckets simultaneously.
 
-#### Using a lots of different buckets
+#### Using multiple buckets
 
-If you want to enforce rate limits by customer, you have to create as many buckets as customers you have.
-Which can be a lot if you are successful ;).
+If you want to enforce per-customer rate limits, you must create as many buckets as you have customers.
+Which can be quite a few if you are successful ;).
 
-To have a lots of buckets in parallel and to avoid resetting your redis namespaces too often, I suggest you
-no longer use the `Ihasa.bucket` method. Instead, you should back-up your buckets with activerecord models
-(for example) and initialize them in a callback runned after the models creation.
+To have many buckets in parallel, and to avoid resetting your redis namespaces too often, I suggest you
+no longer use the `Ihasa.bucket` method. Instead, you should back up your buckets with activerecord models
+(for example) and initialize them in an after-creation model callback.
 
 Example:
 
@@ -124,9 +124,9 @@ Example:
   end
 ```
 
-#### Configuring rate and burst limit
+#### Configuring rate limit and burst limit
 
-Two configuration options exists to configure the rate and burst limits:
+You can configure both the rate limit and burst limit:
 
 ```ruby
 bucket = Ihasa.bucket(rate: 20, burst: 100)
@@ -134,7 +134,7 @@ bucket = Ihasa.bucket(rate: 20, burst: 100)
 
 #### Namespaces
 
-You can have as many bucket as you want on the same redis instance, as long as you
+You can have as many buckets as you want on the same redis instance, as long as you
 configure different namespace for each of them.
 
 Here is an example of using two different buckets for reading and writing to data:
@@ -162,11 +162,11 @@ class Controller < ActionController::Base
 
 #### Redis
 
-By default, all new buckets use the redis instance hosted at localhost:6379. There is
-however two way to configure the used redis instance:
+By default, all new buckets use the redis instance hosted at localhost:6379. You can
+override this default like so:
 
 1. Override the `REDIS_URL` env variable. All new buckets will use that instance
-2. Override the redis url on a bucket creation basis like follow:
+2. Override the redis url on a bucket creation basis like this:
 
 ```ruby
 Ihasa.bucket(redis: Redis.new(url: 'redis://fancy_host:6379'))
@@ -174,8 +174,8 @@ Ihasa.bucket(redis: Redis.new(url: 'redis://fancy_host:6379'))
 
 ## Example
 
-This is an example of a rack middleware accepting 20 requests per seconds, and
-tolerating burst up to 100 requests per second:
+This is an example of a rack middleware that accepts 20 requests per seconds, and
+allows bursts up to 100 requests per second:
 
 ```ruby
 class RateLimiter
