@@ -1,5 +1,6 @@
 module Ihasa
-  class Lua
+  # Contains lua related logic
+  module Lua
     # Please note that the replicate_commands is mandatory when using a
     # non deterministic command before writing shit to the redis instance.
     NOW_DECLARATION = <<-LUA.freeze
@@ -19,63 +20,59 @@ module Ihasa
       def configuration(rate_value, burst_value)
         <<-LUA
           #{NOW_DECLARATION}
-          #{redis_set rate, rate_value}
-          #{redis_set burst, burst_value}
-          #{redis_set allowance, burst_value}
-          #{redis_set last, 'now'}
+          #{set rate, rate_value}
+          #{set burst, burst_value}
+          #{set allowance, burst_value}
+          #{set last, 'now'}
         LUA
       end
 
       def index(key)
-        Bucket::OPTS.index(key) + 1
+        Integer(Ihasa::OPTIONS.index(key)) + 1
       end
 
-      def redis_key(key)
+      def fetch(key)
         "KEYS[#{index key}]"
       end
 
-      def redis_get(key)
+      def get(key)
         "tonumber(redis.call('GET', #{key}))"
       end
 
-      def redis_set(key, value)
+      def set(key, value)
         "redis.call('SET', #{key}, tostring(#{value}))"
       end
 
-      def redis_exists(key)
+      def exists?(key)
         "redis.call('EXISTS', #{key})"
       end
 
       def method_missing(sym, *args, &block)
-        super unless Bucket::OPTS.include? sym
-        redis_key sym
+        super unless Ihasa::OPTIONS.include? sym
+        fetch sym
       end
 
       def to_local(key)
-        "local #{key} = tonumber(#{redis_get(redis_key(key))})"
+        "local #{key} = tonumber(#{get(fetch(key))})"
       end
     end
     ELAPSED_STATEMENT = 'local elapsed = now - last'.freeze
     SEP = "\n".freeze
-    LOCAL_VARIABLES = Bucket::OPTS
+    LOCAL_VARIABLES = Ihasa::OPTIONS
                       .map { |key| to_local(key) }
                       .tap { |vars| vars << ELAPSED_STATEMENT }.join(SEP).freeze
-    class << self
-      def token_bucket_algorithm
-        @algorithm ||= <<-LUA
-          #{NOW_DECLARATION}
-          #{LOCAL_VARIABLES}
-          #{ALLOWANCE_UPDATE_STATEMENT}
-          local result = #{Ihasa::NOK}
-          if allowance >= 1.0 then
-            allowance = allowance - 1.0
-            result = #{Ihasa::OK}
-          end
-          #{redis_set(last, 'now')}
-          #{redis_set(allowance, 'allowance')}
-          return result
-        LUA
+    TOKEN_BUCKET_ALGORITHM = <<-LUA.freeze
+      #{NOW_DECLARATION}
+      #{LOCAL_VARIABLES}
+      #{ALLOWANCE_UPDATE_STATEMENT}
+      local result = #{Ihasa::NOK}
+      if allowance >= 1.0 then
+        allowance = allowance - 1.0
+        result = #{Ihasa::OK}
       end
-    end
+      #{set(last, 'now')}
+      #{set(allowance, 'allowance')}
+      return result
+    LUA
   end
 end

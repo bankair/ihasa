@@ -1,9 +1,14 @@
 require 'redis'
 require 'ihasa/version'
-require 'ihasa/bucket'
 
 # Ihasa module. Root of the Ihasa::Bucket class
 module Ihasa
+  NOK = 0
+  OK = 1
+  OPTIONS = %i(rate burst last allowance).freeze
+
+  require 'ihasa/bucket'
+
   module_function
 
   def default_redis
