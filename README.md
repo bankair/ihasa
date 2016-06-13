@@ -1,16 +1,17 @@
-No more pounding on your APIs !
+# No more pounding on your APIs !
 
 Ihasa is a ruby implementation of the [token bucket algorithm](https://en.wikipedia.org/wiki/Token_bucket) backed-up by Redis.
 
 It  provides a way to share your rate/burst limit across multiple servers, as well as a simple interface.
 
-*Why use Ihasa?*
+**Why use Ihasa?**
 
-1. It's easy to use ([go check the usage section](#usage)
+1. It's easy to use ([go check the usage section](#usage))
 2. It supports rate AND burst
 3. It does not reset all rate limit consumption each new second/minute/hour
 4. It has [namespaces](#namespaces)
 
+This README file contains the following sections:
 
 - [Installation](#installation)
 - [Usage](#usage)
@@ -81,6 +82,8 @@ To have many buckets in parallel, and to avoid resetting your redis namespaces t
 no longer use the `Ihasa.bucket` method. Instead, you should back up your buckets with activerecord models
 (for example) and initialize them in an after-creation model callback.
 
+To help you with that, we added the `save` and `delete` instance methods to the `Ihasa::Bucket` class.
+
 Example:
 
 ```ruby
@@ -91,10 +94,14 @@ Example:
       @implementation ||= Ihasa::Bucket.new(rate, burst, prefix, $redis)
     end
 
-    # The Ihasa::Bucket#initialize_redis_namespace set the relevant
+    # The Ihasa::Bucket#save set the relevant
     # keys in your redis instance to have a working bucket. Do it
     # only when you create or update your bucket's configuration.
-    after_save { implementation.initialize_redis_namespace }
+    after_save { implementation.save }
+
+    # The Ihasa::Bucket#delete remove the variables stored into
+    # the redis instance.
+    after_destroy { implementation.delete }
 
     delegate :accept?, to: :implementation
   end

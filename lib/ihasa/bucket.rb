@@ -15,7 +15,7 @@ module Ihasa
     end
 
     SETUP_ADVICE = 'Ensure that the method '\
-    'Ihasa::Bucket#initialize_redis_namespace was called.'.freeze
+    'Ihasa::Bucket#save was called.'.freeze
     SETUP_ERROR = ('Redis raised an error: %{msg}. ' + SETUP_ADVICE).freeze
     class RedisNamespaceSetupError < RuntimeError; end
 
@@ -35,12 +35,27 @@ module Ihasa
       result
     end
 
-    def initialize_redis_namespace
+    def save
       self.class.initialize_redis_namespace(@redis, @keys, @rate, @burst)
+    end
+
+    # deprecated
+    def initialize_redis_namespace
+      warn 'The Ihasa::Bucket#initialize_redis_namespace is deprecated. ' \
+        'Use Ihasa::Bucket#save instead.'
+      save
+    end
+
+    def delete
+      @redis.del(@keys)
     end
 
     class << self
       attr_accessor :digest
+
+      def create(*args)
+        new(*args).tap &:save
+      end
 
       def initialize_redis_namespace(redis, keys, rate_value, burst_value)
         sha = redis.script(:load, Lua::TOKEN_BUCKET_ALGORITHM)

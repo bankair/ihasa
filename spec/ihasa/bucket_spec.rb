@@ -61,7 +61,5 @@ describe Ihasa::Bucket do
         expect{bucket.accept!}.to raise_error(/Bucket IHAB throttle limit/)
       end
     end
-
   end
-
 end

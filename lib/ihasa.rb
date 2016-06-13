@@ -21,6 +21,6 @@ module Ihasa
 
   DEFAULT_PREFIX = 'IHAB'.freeze
   def bucket(rate: 5, burst: 10, prefix: DEFAULT_PREFIX, redis: default_redis)
-    Bucket.new(rate, burst, prefix, redis).tap(&:initialize_redis_namespace)
+    Bucket.create(rate, burst, prefix, redis)
   end
 end
