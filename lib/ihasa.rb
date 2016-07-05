@@ -1,9 +1,14 @@
 require 'redis'
 require 'ihasa/version'
-require 'ihasa/bucket'
 
 # Ihasa module. Root of the Ihasa::Bucket class
 module Ihasa
+  NOK = 0
+  OK = 1
+  OPTIONS = %i(rate burst last allowance).freeze
+
+  require 'ihasa/bucket'
+
   module_function
 
   def default_redis
@@ -16,6 +21,6 @@ module Ihasa
 
   DEFAULT_PREFIX = 'IHAB'.freeze
   def bucket(rate: 5, burst: 10, prefix: DEFAULT_PREFIX, redis: default_redis)
-    Bucket.new(rate, burst, prefix, redis).tap(&:initialize_redis_namespace)
+    Bucket.create(rate, burst, prefix, redis)
   end
 end
