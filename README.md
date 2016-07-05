@@ -1,4 +1,8 @@
-# No more pounding on your APIs !
+# Ihasa
+
+[![Build Status](https://travis-ci.org/bankair/ihasa.svg?branch=master)](https://travis-ci.org/bankair/ihasa)
+
+_No more pounding on your APIs !_
 
 Ihasa is a ruby implementation of the [token bucket algorithm](https://en.wikipedia.org/wiki/Token_bucket) backed-up by Redis.
 
