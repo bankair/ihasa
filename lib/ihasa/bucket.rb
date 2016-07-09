@@ -54,7 +54,7 @@ module Ihasa
       attr_accessor :digest
 
       def create(*args)
-        new(*args).tap &:save
+        new(*args).tap(&:save)
       end
 
       def initialize_redis_namespace(redis, keys, rate_value, burst_value)
