@@ -7,7 +7,7 @@ module Ihasa
 
     module_function
 
-    def version(debug = false)
+    def version(_debug = false)
       STRING
     end
   end
