@@ -1,8 +1,7 @@
+require 'digest/sha1'
 module Ihasa
   # Contains lua related logic
   module Lua
-    # Please note that the replicate_commands is mandatory when using a
-    # non deterministic command before writing shit to the redis instance.
     NOW_DECLARATION = <<-LUA.freeze
       redis.replicate_commands()
       local now = redis.call('TIME')
@@ -17,9 +16,16 @@ module Ihasa
     LUA
 
     class << self
-      def configuration(rate_value, burst_value)
+      def now_declaration(value)
+        "local now = #{value}"
+      end
+
+      # Please note that the replicate_commands is mandatory when using a
+      # non deterministic command before writing shit to the redis instance
+      # for versions >= 3.2
+      def configuration(rate_value, burst_value, now_declaration = NOW_DECLARATION)
         <<-LUA
-          #{NOW_DECLARATION}
+          #{now_declaration}
           #{set rate, rate_value}
           #{set burst, burst_value}
           #{set allowance, burst_value}
@@ -55,14 +61,21 @@ module Ihasa
       def to_local(key)
         "local #{key} = tonumber(#{get(fetch(key))})"
       end
+      
+      def token_bucket_algorithm_legacy(now_value)
+        <<-LUA.freeze
+          #{now_declaration(now_value)}
+          #{TOKEN_BUCKET_ALGORITHM_BODY}
+        LUA
+      end
     end
+
     ELAPSED_STATEMENT = 'local elapsed = now - last'.freeze
     SEP = "\n".freeze
     LOCAL_VARIABLES = Ihasa::OPTIONS
                       .map { |key| to_local(key) }
                       .tap { |vars| vars << ELAPSED_STATEMENT }.join(SEP).freeze
-    TOKEN_BUCKET_ALGORITHM = <<-LUA.freeze
-      #{NOW_DECLARATION}
+    TOKEN_BUCKET_ALGORITHM_BODY = <<-LUA.freeze
       #{LOCAL_VARIABLES}
       #{ALLOWANCE_UPDATE_STATEMENT}
       local result = #{Ihasa::NOK}
@@ -74,5 +87,13 @@ module Ihasa
       #{set(allowance, 'allowance')}
       return result
     LUA
+    TOKEN_BUCKET_ALGORITHM = <<-LUA.freeze
+      #{NOW_DECLARATION}
+      #{TOKEN_BUCKET_ALGORITHM_BODY}
+    LUA
+    TOKEN_BUCKET_HASH = Digest::SHA1.hexdigest(
+      Lua::TOKEN_BUCKET_ALGORITHM
+    ).freeze
+
   end
 end

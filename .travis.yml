@@ -1,7 +1,3 @@
 script: bundle exec rspec
-addons:
-  apt:
-    packages:
-      - redis-server
 services:
   - redis-server
