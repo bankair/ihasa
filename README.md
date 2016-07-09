@@ -1,6 +1,6 @@
 # Ihasa
 
-[![Build Status](https://travis-ci.org/bankair/ihasa.svg?branch=master)](https://travis-ci.org/bankair/ihasa)
+[![Build Status](https://travis-ci.org/bankair/ihasa.svg?branch=master)](https://travis-ci.org/bankair/ihasa) [![Code Climate](https://codeclimate.com/github/bankair/ihasa/badges/gpa.svg)](https://codeclimate.com/github/bankair/ihasa)
 
 _No more pounding on your APIs !_
 
