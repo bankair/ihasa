@@ -3,7 +3,7 @@ require 'ihasa'
 
 describe Ihasa::Bucket do
   let(:redis) { Ihasa.default_redis }
-  before(:each) { redis.keys.tap { |keys| redis.del(keys) unless keys.empty? } }
+  after(:each) { redis.keys.tap { |keys| redis.del(keys) unless keys.empty? } }
 
   it { expect { Ihasa.bucket }.not_to raise_error }
   it { expect { Ihasa.bucket }.to change {redis.keys.size}.from(0).to(4) }
@@ -61,7 +61,5 @@ describe Ihasa::Bucket do
         expect{bucket.accept!}.to raise_error(/Bucket IHAB throttle limit/)
       end
     end
-
   end
-
 end
