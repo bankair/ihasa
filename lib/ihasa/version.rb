@@ -3,7 +3,7 @@
 module Ihasa
   # This module holds the Ihasa version information.
   module Version
-    STRING = '1.1.0'
+    STRING = '1.1.1'
 
     module_function
 
