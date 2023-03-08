@@ -9,6 +9,10 @@ gemfile:
   - Gemfile
   - Gemfile.redis4
   - Gemfile.redis5
+jobs:
+  exclude:
+    - rvm: 2.4
+    - gemfile: Gemfile.redis5
 script: bundle exec rspec
 services:
   - redis-server
