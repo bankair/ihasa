@@ -42,7 +42,7 @@ Gem::Specification.new do |s|
   s.add_development_dependency 'byebug',  '~> 11.1.3'
   s.add_development_dependency 'pry',     '~> 0.14.2'
   s.add_development_dependency 'rspec',   '~> 3.11.0'
-  s.add_development_dependency 'rubocop', '~> 1.39.0'
+  s.add_development_dependency 'rubocop', '~> 1.1'
 
   s.add_runtime_dependency 'redis', '>= 3', '< 6'
 end
